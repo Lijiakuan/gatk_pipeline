@@ -95,9 +95,9 @@
       ],
   "runSpec": {
     "file": "runPipeline.py",
-    "interpreter": "python2.7_old",
+    "interpreter": "python2.7",
     "execDepends": [{"name": "openjdk-6-jre-headless"}, {"name":"tabix"}, {"name":"pypy"}],
-    "buildDepends": [{"name": "libncurses5-dev"}],
+    "buildDepends": [{"name": "libncurses5-dev"}],s
     "systemRequirements":{"recalibrateVariants":{"instanceType":"dx_m1.xlarge"}}
   },
   "version": "0.0.35",
