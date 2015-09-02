@@ -171,12 +171,12 @@ def main(**job_inputs):
     reduceInput["recalibrated_table"] = recalibratedTable.get_id()
 
     
-    if job_inputs["gatk_resources"] != None:
+    if job_inputs.get("gatk_resources") != None:
         reduceInput["recalibrated_variants_table"] = {'job':variantCallingCoordinatorJob, 'field': "recalibrated_variants_table"}
         
     reduceJobId = dxpy.new_dxjob(fn_input=reduceInput, fn_name="reduceBestPractices").get_id()
     output = {'recalibrated_mappings': {'job': reduceJobId, 'field': 'recalibrated_table'}, 'variants': {'job': reduceJobId, 'field': 'variants_table'}}
-    if job_inputs["gatk_resources"] != None:
+    if job_inputs.get("gatk_resources") != None:
         output['recalibrated_variants'] = {'job': reduceJobId, 'field': 'recalibrated_variants_table'}
 
     return output
@@ -249,7 +249,7 @@ def variantCallingCoordinator(**job_inputs):
     variantsTable = buildVariantsTable(job_inputs, mappingsTable, samples, dxpy.DXRecord(originalContigSet).get_id(), '')
     recalibratedVariantsTable = buildVariantsTable(job_inputs, mappingsTable, samples, dxpy.DXRecord(originalContigSet).get_id(), ' Recalibrated')
     
-    gatkCommand = buildCommand(job)
+    gatkCommand = buildCommand(job_inputs)
  
     reads = 0
     for x in job_inputs['mappings']:
@@ -291,7 +291,7 @@ def variantCallingCoordinator(**job_inputs):
         gatkJobs.append(dxpy.new_dxjob(fn_input=mapGatkInput, fn_name="mapGatk").get_id())
 
     output = {}
-    if job_inputs['gatk_resources'] != None:
+    if job_inputs.get('gatk_resources') != None:
         variantRecalibrationInput = job_inputs
         variantRecalibrationInput["vcfs"] = []
         variantRecalibrationInput["recalibrated_variants_table"] = recalibratedVariantsTable.get_id()
@@ -317,7 +317,7 @@ def reduceBestPractices(**job_inputs):
     variantsTable.close()
 
     output = {}
-    if job_inputs["recalibrated_variants_table"] != None and job_inputs["recalibrated_variants_table"] != '':
+    if job_inputs.get("recalibrated_variants_table") != None and job_inputs["recalibrated_variants_table"] != '':
         recalibratedVariantsTable = dxpy.DXGTable(job_inputs["recalibrated_variants_table"])
         recalibratedVariantsTable.close()
         output['recalibrated_variants_table'] = dxpy.dxlink(recalibratedVariantsTable.get_id())
@@ -906,9 +906,9 @@ def buildCommand(job_inputs):
     if job_inputs['emit_confidence'] != 30.0:
         command += " -stand_emit_conf " +str(job_inputs['emit_confidence'])
     if job_inputs['intervals_merging'] == "INTERSECTION":
-        if job_inputs['intervals_to_process'] != None:
+        if job_inputs.get('intervals_to_process') != None:
             command += " " + job_inputs['intervals_to_process']
-    if job_inputs['intervals_to_exclude'] != None:
+    if job_inputs.get('intervals_to_exclude') != None:
         command += " " + job_inputs['intervals_to_exclude']
     if job_inputs['pcr_error_rate'] != 0.0001:
         command += " -pcr_error " +str(job_inputs['pcr_error_rate'])
@@ -931,7 +931,7 @@ def buildCommand(job_inputs):
             raise dxpy.AppError("Option \"Probability Model\" must be either \"EXACT\" or \"GRID_SEARCH\". Found " + job_inputs['non_reference_probability_model'] + " instead")
         command += " -pnrm " + str(job_inputs['non_reference_probability_model'])
 
-    if job_inputs['single_threaded'] != True:
+    if job_inputs.get('single_threaded') != True:
         command += " --num_threads " + str(cpu_count())
     command += " -L regions.interval_list"
 
@@ -1016,7 +1016,7 @@ def recalibrateVariants(**job_inputs):
         command = "java -Xmx12g org.broadinstitute.sting.gatk.CommandLineGATK -T VariantRecalibrator -input merged.sorted.vcf -tranchesFile model.tranches -recalFile model.recal -R ref.fa -rscriptFile model.plots.R -mode %s" % job_inputs["genotype_likelihood_model"]
     
         count = 0
-        for resource in job_inputs['gatk_resources']:
+        for resource in job_inputs.get('gatk_resources'):
             fh = dxpy.DXFile(resource)
             fileDetails = fh.get_details()
             fileName = "gatk_resource%d.%s.gz" %  (count, fileDetails['resource_type'].lower())
@@ -1045,37 +1045,37 @@ def recalibrateVariants(**job_inputs):
                 job_inputs["fraction_bad"] = 0.25
             print "There were very few variants. Consider adding additional variant set from the publicly available exome dataset."
                 
-        if job_inputs["max_gaussians"] != None:
+        if job_inputs.get("max_gaussians") != None:
             command += " --maxGaussians %d" % job_inputs["max_gaussians"]
         else:
             command += " --maxGaussians 6"
-        if job_inputs["max_iterations"] != None:
+        if job_inputs.get("max_iterations") != None:
             command += " --maxIterations %d" % job_inputs["max_iterations"]
-        if job_inputs["num_k_means"] != None:
+        if job_inputs.get("num_k_means") != None:
             command += " --numKMeans %d" % job_inputs["num_k_means"]
-        if job_inputs["std_threshold"] != None:
+        if job_inputs.get("std_threshold") != None:
             command += " --stdThreshold %f" % job_inputs["std_threshold"]
-        if job_inputs["qual_threhsold"] != None:
+        if job_inputs.get("qual_threhsold") != None:
             command += " --qualThreshold %f" % job_inputs["qual_threshold"]
-        if job_inputs["shrinkage"] != None:
+        if job_inputs.get("shrinkage") != None:
             command += " -shrinkage %f" % job_inputs["shrinkage"]
-        if job_inputs["dirichlet"] != None:
+        if job_inputs.get("dirichlet") != None:
             command += " --dirichlet %f" % job_inputs["dirichlet"]
-        if job_inputs["prior_counts"] != None:
+        if job_inputs.get("prior_counts") != None:
             command += " --priorCounts %d" % job_inputs["prior_counts"]
-        if job_inputs["fraction_bad"] != None:
+        if job_inputs.get("fraction_bad") != None:
             command += " -percentBad %f" % job_inputs["fraction_bad"]
-        if job_inputs["min_num_bad_variants"] != None:
+        if job_inputs.get("min_num_bad_variants") != None:
             command += " -minNumBad %d" % job_inputs["min_num_bad_variants"]
-        if job_inputs["ti_tv_target"] != None:
+        if job_inputs.get("ti_tv_target") != None:
             command += " -titv %f" % job_inputs["ti_tv_target"]
-        if job_inputs["ignore_filter"] != None:
+        if job_inputs.get("ignore_filter") != None:
             for x in job_inputs["ignore_filter"]:
                 command += " -ignoreFilter %s" % x
         command += " -ts_filter_level %f" % job_inputs["ts_filter_level"]
         if job_inputs["trust_all_polymorphic"]:
             command += " -allPoly"
-        if job_inputs['single_threaded'] != True:
+        if job_inputs.get('single_threaded') != True:
             command += " --num_threads " + str(cpu_count())
         
         annotations = []
@@ -1091,7 +1091,7 @@ def recalibrateVariants(**job_inputs):
             else:
                 annotations = checkAnnotations(open("merged.sorted.vcf", 'r'), ["QD", "FS", "HaplotypeScore", "MQRankSum", "ReadPosRankSum", "FS", "MQ", "InbreedingCoeff", "DP"])
     
-        if job_inputs["gatk_recalibration_model"] != None:
+        if job_inputs.get("gatk_recalibration_model") != None:
             dxpy.download_dxfile(dxpy.DXFile(job_inputs["gatk_recalibration_model"]).get_id(), "model.tar.gz")
             subprocess.check_call("tar -xvzf model.tar.gz", shell=True)
             i = 0
